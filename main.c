@@ -43,152 +43,157 @@ int main()
     }
     puts("Now explore questions about signed area.");
     // Given an AffPoint A and an oriented polygon P,
-    // 1. Sum the signed areas of all oriented TRIANGLES ABC
-    // where BC is each oriented side in P.
-    //
-    // Does this sum seem to depend on whether A is inside or
-    // outside P? Nope. Signed area is always -8.
-    //
-    // Not a surprise: I made a rectangle. And the direction I
-    // chose made area negative.
-    //
-    // This was an anticipation of the lecture here about the
-    // Meister formula:
-    //
-    // https://www.youtube.com/watch?v=f81crFAj5UE&list=PLzdiPTrEWyz4rKFN541wFKvKPSg5Ea6XB&index=9
-    //
-    // The punchline is that the sum of signed areas of all
-    // oriented sides of the polygon is also the signed area of
-    // the polygon, and this ends up being the "smaller" formula.
-    // The proof is that taking the sum of signed areas of
-    // triangles method, then writing out each of those terms as
-    // the sum of the signed areas of its oriented sides, there
-    // are 12 terms, but eight of them cancel because they are
-    // the same sides, just opposite orientations. These are the
-    // eight sides where the point A is one of the endpoints. In
-    // other words, point A drops out of the picture -- the
-    // signed area is agnostic to the choice of A. The resulting
-    // formula is simply the sum of signed areas of the oriented
-    // sides of the polygon.
-    //
-    // 2. Sum the signed areas of all oriented SIDES AB where B
-    // is each point in P.
-    //
-    // This is a different idea from 1. This is NOT the area of
-    // the polygon because it does not include any of the
-    // "canceling" oriented sides and it does not include the
-    // oriented sides of the polygon itself! I honestly don't
-    // know what to expect from this sum, but I know it is NOT
-    // going to be the same as 1.
-    //
-    // Is this sum the same as the sum from question 1? No.
-    //
-    // Does this sum seem to depend on whether A is inside or
-    // outside P? No... I don't know what it depends on.
-    // TODO: make this into an interactive simulation where I can
-    // move the mouse around to set the point and I can watch the
-    // signed area update -- maybe draw the triangles too
-    //
-    // 3. Insert A into P. <-- THIS IS THE MOST PROMISING IDEA
-    // SO FAR
-    //
-    // The basic idea sounds obvious -- think of P like an
-    // ameoba. Introduce a point A. Let A define a new vertex on
-    // the ameoba. If A was inside the ameoba area, the area is
-    // now smaller. If A was outsides, the area is now bigger.
-    //
-    // But it makes a huge difference where A is inserted.
-    // Remember that the ordering of points determines how the
-    // sides of the polygon are drawn.
-    //
-    // The location that is easiest to code is to put A as the
-    // last point (not the last point in the array that is a copy
-    // of the first point, but the point just before that final
-    // copied value). So that is how I've done it in my tests.
-    //
-    // Now the polygon has an additional two oriented sides.
-    // Compute the signed area of old P and new P.
-    //
-    // I suspect if A is inside P, then s(old P) > s(new P)
-    // Similarly, if A is outside P, then s(new P) > s(old P)
-    // And if A happens to lie on a side of old P, then s(new P) == s(old P)
-    //
-    // That is just formally stating my ameoba picture.
-    //
-    // From my tests, the above seems true! But only if inserting
-    // A does not induce a twist.
-    //
-    // Inserting A at an arbitrary location in the order of
-    // points of P can result in a twisted polygon.
-    //
-    // For example, if A is outside the original polygon, then
-    // depending on where it is placed in the order of the
-    // points, the new polygon will either be not twisted, in
-    // which case it has a bigger signed area, or it will be
-    // twisted, in which case the signed area is reduced (though
-    // I don't know if a reduction in signed area is guaranteed).
-    //
-    // A simple example: induce a twist in the rectangle. Twist
-    // the simple rectangle into an hourglass. (Twist by
-    // reordering the points in P.)
-    //
-    // There are two ways to twist: imagine grabbing the long
-    // side and twisting it, then the other way, imagine grabbing
-    // the short side and twisting it. It results in two
-    // different hourglass shapes.
-    //
-    // The resulting two triangles are the same size and oriented
-    // in opposite directions. So the two oriented triangle
-    // signed areas should cancel.
-    //
-    // And in fact, calculating this by just the sum of signed
-    // areas of oriented sides and expressing the twist by
-    // ordering the polygon points to induce the two twists I
-    // described, both signed areas are zero!
-    //
-    // That is an exciting result.
-    //
-    // But it also puts a kink in my idea for determining
-    // inside/outside.
-    //
-    // Twists cause flips in the polarity of the signed area.
-    // Twists also remove area that used to be inside the shape.
-    //
-    // Then I cannot insist that s(old P) > s(new P) means A
-    // is inside. I have examples of A outside inducing a twist
-    // and resulting in s(old P) > s(new P).
-    //
-    // So no twists. How do I guarantee I inserted A at a
-    // location that does not induce a twist?
-    //
-    // 3b. One idea is to find the side closest to A and insert A
-    // between the two points that define that side. That should
-    // guarantee that A does not cause a twist.
-    //
-    // Note this is NOT the same as finding the two points
-    // closest to A. Imagine A is just above a side where one
-    // endpoint happens to be very far away. A is not close to
-    // both endpoints (because that's who I set this situation
-    // up) and yet it is closest to this side.
-    //
-    // So this solution requires having a way to find the
-    // distance between A and every side to decide where to
-    // insert A.
-    //
-    // For that matter, what if I just find the two points A is
-    // closest to. Is that enough to tell me if A is inside or
-    // outside? No, just imagine mirroring the polygon about the
-    // side that A is closest to. That operation does not alter
-    // the side in question, but if A was inside it is now
-    // outside and vice versa.
-    //  
-    // Can signed area rescue me once again? Find the signed area
-    // of every oriented triangle that uses A as one of the
-    // points. This is exactly what I did earlier in idea 1. But
-    // this time don't sum them! Now I just want to know which
-    // area has the smallest magnitude. I propose that the area
-    // with the smallest magnitude is the side that A is closest
-    // to.
+    /* *************Idea 1***************
+     * 1. Sum the signed areas of all oriented TRIANGLES ABC
+     * where BC is each oriented side in P.
+     * 
+     * Does this sum seem to depend on whether A is inside or
+     * outside P? Nope. Signed area is always -8.
+     * 
+     * Not a surprise: I made a rectangle. And the direction I
+     * chose made area negative.
+     * 
+     * This was an anticipation of the lecture here about the
+     * Meister formula:
+     * 
+     * https://www.youtube.com/watch?v=f81crFAj5UE&list=PLzdiPTrEWyz4rKFN541wFKvKPSg5Ea6XB&index=9
+     * 
+     * The punchline is that the sum of signed areas of all
+     * oriented sides of the polygon is also the signed area of
+     * the polygon, and this ends up being the "smaller" formula.
+     * The proof is that taking the sum of signed areas of
+     * triangles method, then writing out each of those terms as
+     * the sum of the signed areas of its oriented sides, there
+     * are 12 terms, but eight of them cancel because they are
+     * the same sides, just opposite orientations. These are the
+     * eight sides where the point A is one of the endpoints. In
+     * other words, point A drops out of the picture -- the
+     * signed area is agnostic to the choice of A. The resulting
+     * formula is simply the sum of signed areas of the oriented
+     * sides of the polygon.
+     * *******************************/
+    /* *************Idea 2***************
+     * 2. Sum the signed areas of all oriented SIDES AB where B
+     * is each point in P.
+     *
+     * This is a different idea from 1. This is NOT the area of
+     * the polygon because it does not include any of the
+     * "canceling" oriented sides and it does not include the
+     * oriented sides of the polygon itself! I honestly don't
+     * know what to expect from this sum, but I know it is NOT
+     * going to be the same as 1.
+     *
+     * Is this sum the same as the sum from question 1? No.
+     *
+     * Does this sum seem to depend on whether A is inside or
+     * outside P? No... I don't know what it depends on.
+     *
+     * TODO: make this into an interactive simulation where I can
+     * move the mouse around to set the point and I can watch the
+     * signed area update -- maybe draw the triangles too
+     * *******************************/
+    /* *************Idea 3a <-- THIS IS THE MOST PROMISING IDEA SO FAR***************
+     * 3. Insert A into P. Is the area of P increased, decreased, or the same?
+     *
+     * The basic idea sounds obvious -- think of P like an
+     * ameoba. Introduce a point A. Let A define a new vertex on
+     * the ameoba. If A was inside the ameoba area, the area is
+     * now smaller. If A was outsides, the area is now bigger.
+     *
+     * But it makes a huge difference where A is inserted.
+     * Remember that the ordering of points determines how the
+     * sides of the polygon are drawn.
+     *
+     * The location that is easiest to code is to put A as the
+     * last point (not the last point in the array that is a copy
+     * of the first point, but the point just before that final
+     * copied value). So that is how I've done it in my tests.
+     *
+     * Now the polygon has an additional two oriented sides.
+     * Compute the signed area of old P and new P.
+     *
+     * I suspect if A is inside P, then s(old P) > s(new P)
+     * Similarly, if A is outside P, then s(new P) > s(old P)
+     * And if A happens to lie on a side of old P, then s(new P) == s(old P)
+     *
+     * That is just formally stating my ameoba picture.
+     *
+     * From my tests, the above seems true! But only if inserting
+     * A does not induce a twist.
+     *
+     * Inserting A at an arbitrary location in the order of
+     * points of P can result in a twisted polygon.
+     *
+     * For example, if A is outside the original polygon, then
+     * depending on where it is placed in the order of the
+     * points, the new polygon will either be not twisted, in
+     * which case it has a bigger signed area, or it will be
+     * twisted, in which case the signed area is reduced (though
+     * I don't know if a reduction in signed area is guaranteed).
+     *
+     * A simple example: induce a twist in the rectangle. Twist
+     * the simple rectangle into an hourglass. (Twist by
+     * reordering the points in P.)
+     *
+     * There are two ways to twist: imagine grabbing the long
+     * side and twisting it, then the other way, imagine grabbing
+     * the short side and twisting it. It results in two
+     * different hourglass shapes.
+     *
+     * The resulting two triangles are the same size and oriented
+     * in opposite directions. So the two oriented triangle
+     * signed areas should cancel.
+     *
+     * And in fact, calculating this by just the sum of signed
+     * areas of oriented sides and expressing the twist by
+     * ordering the polygon points to induce the two twists I
+     * described, both signed areas are zero!
+     *
+     * That is an exciting result.
+     *
+     * But it also puts a kink in my idea for determining
+     * inside/outside.
+     *
+     * Twists cause flips in the polarity of the signed area.
+     * Twists also remove area that used to be inside the shape.
+     *
+     * Then I cannot insist that s(old P) > s(new P) means A
+     * is inside. I have examples of A outside inducing a twist
+     * and resulting in s(old P) > s(new P).
+     *
+     * So no twists. How do I guarantee I inserted A at a
+     * location that does not induce a twist?
+     *
+     * *******************************/
+     /* *************Idea 3b***************
+      * 3b. To prevent twisting when inserting A in P, find the side closest to
+      * A and insert A between the two points that define that side.
+      *
+      * Note this is NOT the same as finding the two points
+      * closest to A. Imagine A is just above a side where one
+      * endpoint happens to be very far away. A is not close to
+      * both endpoints (because that's who I set this situation
+      * up) and yet it is closest to this side.
+      *
+      * So this solution requires having a way to find the
+      * distance between A and every side to decide where to
+      * insert A.
+      *
+      * For that matter, what if I just find the two points A is
+      * closest to. Is that enough to tell me if A is inside or
+      * outside? No, just imagine mirroring the polygon about the
+      * side that A is closest to. That operation does not alter
+      * the side in question, but if A was inside it is now
+      * outside and vice versa.
+      *  
+      * Can signed area rescue me once again? Find the signed area
+      * of every oriented triangle that uses A as one of the
+      * points. This is exactly what I did earlier in idea 1. But
+      * this time don't sum them! Now I just want to know which
+      * area has the smallest magnitude. I propose that the area
+      * with the smallest magnitude is the side that A is closest
+      * to.
+      * *******************************/
 
     // Make a polygon
     // Define points walking clockwise (yields positive signed area)
